@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pendelplan Noah</title>
+<style>
+  :root {
+    --bg:#f4f5f7; --card:#fff; --fg:#14171c; --muted:#667085; --line:#e3e6ea;
+    --accent:#ec0016; --accent-fg:#fff; --soft:#eef0f3; --subbg:rgba(127,127,127,.07);
+    --ok:#e6f6ec; --okfg:#126b34; --res:#fff4d6; --resfg:#8a5a00;
+    --last:#fde7e7; --lastfg:#a61b1b; --exam:#e8efff; --examfg:#2347a8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0f1115; --card:#1a1d23; --fg:#eceef2; --muted:#9aa3b2; --line:#2b3039;
+      --accent:#ff3b4d; --accent-fg:#fff; --soft:#252a32; --subbg:rgba(255,255,255,.04);
+      --ok:#12331f; --okfg:#6fdc9a; --res:#3a2e0c; --resfg:#f2c35a;
+      --last:#3d1717; --lastfg:#ff8a8a; --exam:#17234a; --examfg:#9db8ff;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px 14px 40px; background:var(--bg); color:var(--fg);
+    font-family:-apple-system, "Segoe UI", Aptos, Roboto, sans-serif; font-size:15px; line-height:1.4; }
+  .page { max-width:980px; margin:0 auto; }
+  h1 { font-size:22px; margin:6px 0 2px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:14px; }
+
+  .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
+  .tabs { display:inline-flex; background:var(--soft); border-radius:10px; padding:3px; }
+  .tabs button { border:0; background:transparent; color:var(--fg); font:inherit; font-size:14px;
+    padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .tabs button.on { background:var(--card); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+  .now { font-size:12px; color:var(--okfg); background:var(--ok); padding:3px 8px; border-radius:99px; }
+  .work { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+  .work input { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); }
+  .datehint { font-size:12px; color:var(--muted); margin:0 0 12px; }
+
+  h2 { font-size:17px; margin:26px 0 8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted);
+    background:var(--soft); padding:9px 12px; }
+  td { padding:10px 12px; vertical-align:top; border-top:1px solid var(--line); }
+  tr.top:not(:first-child) td { border-top:2px solid var(--line); }
+  tr.sub td { background:var(--subbg); border-top:1px dashed var(--line); }
+  tr.sub td:first-child { padding-left:30px; position:relative; }
+  tr.sub td:first-child::before { content:"↳"; position:absolute; left:12px; top:9px; color:var(--muted); }
+  .badge { display:inline-block; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .b-std { background:var(--ok); color:var(--okfg); }
+  .b-res { background:var(--res); color:var(--resfg); }
+  .b-last, .b-emerg { background:var(--last); color:var(--lastfg); }
+  .b-exam, .b-safe { background:var(--exam); color:var(--examfg); }
+  .arr { font-weight:700; white-space:nowrap; }
+  .chain .sep { color:var(--muted); padding:0 3px; }
+  .chain .warn { color:var(--lastfg); font-weight:600; }
+  .links { display:flex; gap:6px; flex-wrap:wrap; }
+  .links a { text-decoration:none; font-size:13px; font-weight:600; padding:7px 11px; border-radius:8px; white-space:nowrap; }
+  .links .db { background:var(--accent); color:var(--accent-fg); }
+  .links .live { background:var(--soft); color:var(--fg); }
+
+  .tips { margin-top:26px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 16px; }
+  .tips h3 { margin:0 0 6px; font-size:15px; }
+  .tips ul { margin:0; padding-left:18px; }
+  .tips li { margin:4px 0; }
+  .note { color:var(--muted); font-size:12px; margin-top:14px; }
+
+  @media (max-width:640px) {
+    thead { display:none; }
+    table, tbody, tr, td { display:block; width:100%; }
+    tr { padding:12px; border-top:1px solid var(--line); }
+    tr:first-child { border-top:0; }
+    tr.top:not(:first-child) { border-top:2px solid var(--line); }
+    tr.sub { width:calc(100% - 18px); margin-left:18px; border-left:3px solid var(--line);
+      border-top:1px dashed var(--line); background:var(--subbg); }
+    td, tr.sub td, tr.top:not(:first-child) td { border:0; padding:3px 0; background:transparent; }
+    tr.sub td:first-child { padding-left:0; }
+    tr.sub td:first-child::before { content:none; }
+    td.c-badge { margin-bottom:4px; }
+    td.c-arr::before { content:"Ankunft: "; font-weight:400; color:var(--muted); }
+    td.c-links { margin-top:8px; }
+    .links a { flex:1; text-align:center; padding:10px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>🚆 Pendelplan Castrop-Rauxel ⇄ Herne / Bochum</h1>
+<div class="sub">Stand 23.11.2026 · Ankunft Hafenstr. morgens geschätzt (±1–2 Min.) · Schule 7:30 Beginn / 14:30 Schluss angenommen</div>
+
+<div class="bar">
+  <div class="tabs" id="tabs">
+    <button data-p="A">Bis 12.12.</button>
+    <button data-p="B">Ab 14.12.</button>
+  </div>
+  <span class="now" id="nowTag" hidden>aktuell gültig</span>
+  <label class="work">Feierabend ab
+    <input type="time" id="workEnd" value="15:30">
+  </label>
+</div>
+<div class="datehint" id="dateHint"></div>
+
+<div id="out"></div>
+
+<div class="tips">
+  <h3>Gut zu wissen</h3>
+  <ul>
+    <li>Bus 323 ab Hafenstr. <b>meiden: Minute :28</b> (ab 14.12.) bzw. <b>:31</b> (bis 12.12.) – Anschluss an die S2 nur 3 Min.</li>
+    <li>Berufsschule: S2 6:38 verträgt ca. <b>20 Min.</b> Verspätung, RB32 6:44 ca. <b>14 Min.</b></li>
+    <li>U35: Vom 28.12. bis 06.01. gilt ein anderer Fahrplan.</li>
+    <li>Zugzeiten nach dem 13.12. einmal im DB Navigator gegenprüfen.</li>
+  </ul>
+</div>
+<p class="note">
+  🔴 <b>DB</b> öffnet die Verbindungssuche auf bahn.de mit Start, Ziel, Datum und Abfahrtszeit der jeweiligen Zeile.
+  <b>Live</b> zeigt die aktuellen Abfahrten am Starthalt. Beim Heimweg von der Arbeit werden die Uhrzeiten aus „Feierabend ab“ berechnet (erste Abfahrt ab dieser Zeit).
+</p>
+
+</div>
+
+<script>
+const CAS = 'Castrop-Rauxel Hbf', HER = 'Herne', BOC = 'Bochum Hbf', HAF = 'Hafenstr., Herne';
+const FEIERABEND_STANDARD = '15:30';
+
+// Haltestellen-IDs aus echten bahn.de-Links
+const STOPS = {
+  [CAS]: { ei:'8001327', id:'A=1@O=Castrop-Rauxel Hbf@X=7303978@Y=51573524@U=81@L=8001327@p=1795086023@i=U×008010036@' },
+  [HER]: { ei:'8000164', id:'A=1@O=Herne@X=7217826@Y=51543653@U=81@L=8000164@p=1795086023@i=U×008010038@' },
+  [HAF]: { ei:'666278',  id:'A=1@O=Hafenstr., Herne@X=7171927@Y=51545208@U=80@L=666278@p=1795088768@' },
+  [BOC]: { ei:'8000041', id:'A=1@O=Bochum Hbf@X=7223273@Y=51478607@U=80@L=8000041@p=1795088768@i=U×008010179@' },
+};
+const LIVE = { [CAS]:'https://bahn.expert/Castrop-Rauxel%20Hbf', [HER]:'https://bahn.expert/Herne',
+               [BOC]:'https://bahn.expert/Bochum%20Hbf', [HAF]:'https://bahn.expert/Herne%20Hafenstra%C3%9Fe' };
+const SHORT = { [CAS]:'Castrop', [HER]:'Herne', [BOC]:'Bochum', [HAF]:'Hafenstr.' };
+
+const KINDS = { std:'✅ Standard', res:'🟡 Reserve', last:'🔴 Letzte Chance', exam:'📝 Klausurtag', safe:'🛡️ Sicher', emerg:'🆘 Notfall' };
+const SEP = '<span class="sep">→</span>';
+const chain = (...p) => p.join(SEP);
+
+// Feste Zeile. lvl 0 = Hauptzeile, lvl 1 = eingerückt unter der Hauptzeile
+const r = (kind, text, arr, from, to, time, lvl=0) => ({ kind, text, arr, from, to, time, lvl });
+const s = (kind, text, arr, from, to, time) => r(kind, text, arr, from, to, time, 1);
+
+// Heimweg Arbeit: nur Minuten, die Stunden werden aus "Feierabend ab" berechnet
+// legs: [Label, Minute] ... ; Ankunft: Minute in Castrop
+const hw = (kind, lvl, bus, herne, train, trainMin, castrop) =>
+  ({ kind, lvl, from:HAF, to:CAS, dyn:{ bus, herne, train, trainMin, castrop } });
+
+const DATA = {
+  A: { start:'2026-11-23', end:'2026-12-11', groups:[
+    { title:'🏢 Hinweg Arbeit', rows:[
+      r('std',  chain('S2 6:38','Herne 6:43','Bus 323 6:54'), 'Hafenstr. ca. 7:06', CAS, HAF, '06:38'),
+      s('res',  chain('RB32 6:44','Herne 6:49','Bus 6:54'), 'Hafenstr. ca. 7:06', CAS, HAF, '06:44'),
+      s('last', chain('Bus 7:14 ab Herne'), 'Hafenstr. ca. 7:26', HER, HAF, '07:14'),
+    ]},
+    { title:'🎓 Hinweg Berufsschule', rows:[
+      r('std',  chain('S2 6:38','Herne 6:43','U35 6:49','Bochum Hbf 7:04'), 'Schule 7:09', CAS, BOC, '06:38'),
+      s('res',  chain('RB32 6:44','Herne 6:49','U35 6:55'), 'Schule 7:15', CAS, BOC, '06:44'),
+      s('last', chain('U35 7:07 ab Herne','Bochum 7:22'), 'Schule 7:27', HER, BOC, '07:07'),
+      r('exam', chain('S2 6:08'), 'Schule ca. 6:39', CAS, BOC, '06:08'),
+      s('res',  chain('RE3 6:13'), 'Schule ca. 6:45', CAS, BOC, '06:13'),
+    ]},
+    { title:'🏠 Heimweg Arbeit', rows:[
+      hw('std', 0, 51, 4, 'RB32', 8, 14),
+      hw('res', 1, 51, 4, 'S2', 16, 22),
+      hw('std', 0, 11, 24, 'RE3', 38, 44),
+      hw('res', 1, 11, 24, 'S2', 46, 52),
+    ]},
+    { title:'🏠 Heimweg Berufsschule', rows:[
+      r('std',  chain('U35 14:44','Herne 14:58','RB32 15:08'), 'Castrop 15:14', BOC, CAS, '14:44'),
+      s('res',  chain('U35 14:44','Herne 14:58','S2 15:16'), 'Castrop 15:22', BOC, CAS, '14:44'),
+      r('std',  chain('U35 14:54','Herne 15:08','S2 15:16'), 'Castrop 15:22', BOC, CAS, '14:54'),
+      s('emerg',chain('RE3 15:38 ab Herne'), 'Castrop 15:44', HER, CAS, '15:38'),
+      s('emerg',chain('S2 15:46 ab Herne'), 'Castrop 15:52', HER, CAS, '15:46'),
+    ]},
+  ]},
+  B: { start:'2026-12-14', end:'2027-12-31', groups:[
+    { title:'🏢 Hinweg Arbeit', rows:[
+      r('std',  chain('S2 6:38','Herne 6:43','Bus 323 6:52'), 'Hafenstr. ca. 7:05', CAS, HAF, '06:38'),
+      s('res',  chain('RB32 6:44','Herne 6:49','Bus 6:52 <span class="warn">(nur 3 Min., knapp)</span>'), 'Hafenstr. ca. 7:05', CAS, HAF, '06:44'),
+      s('last', chain('Bus 7:12 ab Herne'), 'Hafenstr. ca. 7:25', HER, HAF, '07:12'),
+      r('safe', chain('S2 6:08','Bus 6:32'), 'Hafenstr. ca. 6:45', CAS, HAF, '06:08'),
+      s('res',  chain('RE3 6:13','Bus 6:32'), 'Hafenstr. ca. 6:45', CAS, HAF, '06:13'),
+    ]},
+    { title:'🎓 Hinweg Berufsschule', rows:[
+      r('std',  chain('S2 6:38','Herne 6:43','U35 6:49','Bochum Hbf 7:04'), 'Schule 7:09', CAS, BOC, '06:38'),
+      s('res',  chain('RB32 6:44','Herne 6:49','U35 6:55'), 'Schule 7:15', CAS, BOC, '06:44'),
+      s('last', chain('U35 7:07 ab Herne','Bochum 7:22'), 'Schule 7:27', HER, BOC, '07:07'),
+      r('exam', chain('S2 6:08'), 'Schule ca. 6:39', CAS, BOC, '06:08'),
+      s('res',  chain('RE3 6:13'), 'Schule ca. 6:45', CAS, BOC, '06:13'),
+    ]},
+    { title:'🏠 Heimweg Arbeit', rows:[
+      hw('std', 0, 48, 3, 'RB32', 8, 14),
+      hw('res', 1, 48, 3, 'S2', 16, 22),
+      hw('std', 0, 8, 23, 'RE3', 38, 44),
+      hw('res', 1, 8, 23, 'S2', 46, 52),
+    ]},
+    { title:'🏠 Heimweg Berufsschule', rows:[
+      r('std',  chain('U35 14:44','Herne 14:58','RB32 15:08'), 'Castrop 15:14', BOC, CAS, '14:44'),
+      s('res',  chain('U35 14:44','Herne 14:58','S2 15:16'), 'Castrop 15:22', BOC, CAS, '14:44'),
+      r('std',  chain('U35 14:54','Herne 15:08','S2 15:16'), 'Castrop 15:22', BOC, CAS, '14:54'),
+      s('emerg',chain('RE3 15:38 ab Herne'), 'Castrop 15:44', HER, CAS, '15:38'),
+      s('emerg',chain('S2 15:46 ab Herne'), 'Castrop 15:52', HER, CAS, '15:46'),
+    ]},
+  ]},
+};
+
+const pad = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const enc = encodeURIComponent;
+const fmt = t => pad(Math.floor(t/60)%24)+':'+pad(t%60);
+// nächster Zeitpunkt >= t, dessen Minute-der-Stunde = m
+const nextAt = (t, m) => { let x = t - (t%60) + m; if (x < t) x += 60; return x; };
+
+// Nächster Werktag, an dem die Abfahrtszeit noch in der Zukunft liegt
+function travelDate(p, time){
+  const now = new Date();
+  let d = new Date();
+  if (time) {
+    const [h,m] = time.split(':').map(Number);
+    if (h*60+m <= now.getHours()*60+now.getMinutes()) d.setDate(d.getDate()+1);
+  }
+  if (iso(d) < DATA[p].start) d = new Date(DATA[p].start+'T12:00:00');
+  while (d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1);
+  let str = iso(d);
+  if (str > DATA[p].end) str = DATA[p].end;
+  return str;
+}
+
+function dbLink(from, to, date, time){
+  const a = STOPS[from], b = STOPS[to];
+  let h = '#sts=true&so='+enc(from)+'&zo='+enc(to)+'&kl=2&r=13:16:KLASSENLOS:1';
+  if (a) h += '&soid='+enc(a.id);
+  if (b) h += '&zoid='+enc(b.id);
+  h += '&sot=ST&zot=ST';
+  if (a) h += '&soei='+a.ei;
+  if (b) h += '&zoei='+b.ei;
+  if (time) h += '&hd='+date+'T'+time+':00';
+  h += '&hza=D&hz=%5B%5D&ar=false&s=true&d=false&vm=00,01,02,03,04,05,06,07,08,09&fm=false&bp=false&dlt=false&nfv=false&dltv=false';
+  return 'https://www.bahn.de/buchung/fahrplan/suche'+h;
+}
+
+// Dynamische Heimweg-Zeile -> Text, Ankunft, Abfahrtszeit
+function resolveDyn(x, workEnd){
+  const [h,m] = workEnd.split(':').map(Number);
+  const start = h*60+m;
+  const d = x.dyn;
+  const bus = nextAt(start, d.bus);
+  const herne = nextAt(bus, d.herne);
+  const train = nextAt(herne, d.trainMin);
+  const cas = nextAt(train, d.castrop);
+  return {
+    text: chain('Bus '+fmt(bus), 'Herne '+fmt(herne), d.train+' '+fmt(train)),
+    arr: 'Castrop '+fmt(cas),
+    time: fmt(bus),
+  };
+}
+
+let period = 'A';
+const workInput = document.getElementById('workEnd');
+// Standard 15:30; falls der Browser Speichern erlaubt (in der iOS-Dateien-App oft nicht), wird die letzte Eingabe gemerkt
+try { const v = localStorage.getItem('pendelWorkEnd'); if (v) workInput.value = v; } catch(e){}
+
+function render(){
+  document.getElementById('dateHint').textContent = 'DB-Links suchen den nächsten Werktag, an dem die Abfahrt noch in der Zukunft liegt.';
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.p===period));
+
+  const workEnd = workInput.value || FEIERABEND_STANDARD;
+  let html = '';
+  DATA[period].groups.forEach(g => {
+    html += '<h2>'+g.title+'</h2><div class="card"><table><thead><tr><th>Variante</th><th>Verbindung</th><th>Ankunft</th><th>Links</th></tr></thead><tbody>';
+    g.rows.forEach(x => {
+      let text = x.text, arr = x.arr, time = x.time;
+      if (x.dyn) { const d = resolveDyn(x, workEnd); text = d.text; arr = d.arr; time = d.time; }
+      const date = travelDate(period, time);
+      html += '<tr class="'+(x.lvl ? 'sub' : 'top')+'">'
+        + '<td class="c-badge"><span class="badge b-'+x.kind+'">'+KINDS[x.kind]+'</span></td>'
+        + '<td class="chain">'+text+'</td>'
+        + '<td class="c-arr arr">'+arr+'</td>'
+        + '<td class="c-links"><div class="links">'
+        +   '<a class="db" href="'+dbLink(x.from,x.to,date,time)+'">DB ↗</a>'
+        +   '<a class="live" href="'+(LIVE[x.from]||'#')+'">Live '+SHORT[x.from]+'</a>'
+        + '</div></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  document.getElementById('out').innerHTML = html;
+
+  const active = iso(new Date()) >= DATA.B.start ? 'B' : 'A';
+  document.getElementById('nowTag').hidden = (period !== active);
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  if (e.target.dataset.p) { period = e.target.dataset.p; render(); }
+});
+workInput.addEventListener('change', () => {
+  try { localStorage.setItem('pendelWorkEnd', workInput.value); } catch(e){}
+  render();
+});
+
+period = iso(new Date()) >= DATA.B.start ? 'B' : 'A';
+render();
+</script>
+</body>
+</html>
